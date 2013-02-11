@@ -1,0 +1,324 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>jQTouch &beta;</title>
+        <link rel="stylesheet" href="themes/css/jqtouch.css" title="jQTouch">
+        <link rel="stylesheet" href="themes/css/styles.css" title="jQTouch">
+        <link rel="stylesheet" href="src/itabbar.css"/>
+        <link href="src/blue.monday/jplayer.blue.monday.css" rel="stylesheet" type="text/css" />
+
+        <script src="src/lib/zepto.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="src/jqtouch.min.js" type="text/javascript" charset="utf-8"></script>
+        <script type='text/javascript' charset="utf-8" src='src/itabbar.js'></script>
+        <!-- Player -->
+        <script type="text/javascript" charset="utf-8" src="src/jquery.jplayer.min.js"></script>
+        <script type="text/javascript" charset="utf-8" src="src/jplayer.playlist.min.js"></script>
+        <!-- Uncomment the following two lines (and comment out the previous two) to use jQuery instead of Zepto. -->
+        <!-- <script src="src/lib/jquery-1.7.min.js" type="application/x-javascript" charset="utf-8"></script> -->
+        <!-- <script src="src/jqtouch-jquery.min.js" type="application/x-javascript" charset="utf-8"></script> -->
+
+        <script src="extensions/jqt.themeswitcher.min.js" type="application/x-javascript" charset="utf-8"></script>
+
+        <script type="text/javascript" charset="utf-8">
+            var jQT = new $.jQTouch({
+                icon: 'jqtouch.png',
+                icon4: 'jqtouch4.png',
+                addGlossToIcon: false,
+                startupScreen: 'jqt_startup.png',
+                statusBar: 'black-translucent',
+                themeSelectionSelector: '#jqt #themes ul',
+                preloadImages: []
+            });
+
+            // Some sample Javascript functions:
+            $(function(){
+
+                // Show a swipe event on swipe test
+                $('#swipeme').swipe(function(evt, data) {
+                    var details = !data ? '': '<strong>' + data.direction + '/' + data.deltaX +':' + data.deltaY + '</strong>!';
+                    $(this).html('You swiped ' + details );
+                    $(this).parent().after('<li>swiped!</li>')
+                });
+
+                $('#tapme').tap(function(){
+                    $(this).parent().after('<li>tapped!</li>')
+                });
+
+                $('a[target="_blank"]').bind('click', function() {
+                    if (confirm('This link opens in a new window.')) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                });
+
+                // Page animation callback events
+                $('#pageevents').
+                    bind('pageAnimationStart', function(e, info){
+                        $(this).find('.info').append('Started animating ' + info.direction + '&hellip;  And the link ' +
+                            'had this custom data: ' + $(this).data('referrer').data('custom') + '<br>');
+                    }).
+                    bind('pageAnimationEnd', function(e, info){
+                        $(this).find('.info').append('Finished animating ' + info.direction + '.<br><br>');
+
+                    });
+
+                $('#list').bind('pageAnimationEnd', function(e, info) {
+                    $('#tabbar').show();
+                    if (!$(this).data('loaded')) {
+                        showLoading();
+                        $.getJSON('http://mideastunes.com/api/v1/popular_artists?limit=30&greedy=pictures', function(data) {
+                            output = output = $('#artistList');
+                             $.each(data.data, function(i,item){
+                              var landmark =
+                              '<li class="arrow">\
+                                <a href="#details" id="'+item.id+'" >\
+                                  <img class="left" src="'+item.pictures[0].ios_thumb+'"/>\
+                                  <div class="left data-container">\
+                                    <span class="artist_name bold">'+item.metadata.name+'</span><br/>\
+                                    <span class="genre_name">'+ item.genres+'</span>\
+                                  </div>\
+                                </a>\
+                              </li>';
+                              output.append(landmark);
+                            });
+                        hideLoading();
+                        }); // getjson
+                        $(this).data('loaded', true);
+                    } //direction in end
+                }); //pageAnimationEnd
+
+                $('#details').bind('pageAnimationEnd', function(e, info) {
+                    $('#tabbar').show();
+                    if (info.direction == 'in') {
+                        var id = $(this).data('referrer')[0].id;
+                        var output = $('#actionList');
+                        showLoading();
+                        $.getJSON('http://mideastunes.com/api/v1/artists/'+id+'?greedy=pictures,songs', function(data) {
+                             $.each(data.data, function(i,item){
+                                $(".bio_bttn").attr('id', item.id);
+                                $('#artistPic').attr('src',  item.pictures[0].detail);
+                                $('#fullName').text(item.metadata.name);
+                                $.each(item.songs, function(i,record){
+                                  var landmark = ' \
+                                    <li>\
+                                      <a href="#" onclick="setAudioPlaylist({{track}})">\
+                                        <div class="left data-container">\
+                                          <span class="artist_name bold">{{title}}</span><br/>\
+                                          <span class="genre_name">{{name}}</span>\
+                                        </div>\
+                                      </a>\
+                                    </li>';
+                                  landmark = landmark.replace(/{{track}}/, "'id=" + id + "'");
+                                  landmark = landmark.replace(/{{title}}/, record.title);
+                                  landmark = landmark.replace(/{{name}}/, item.metadata.name);
+                                  output.append(landmark);
+                                });
+                            });
+                        hideLoading();
+                        }); // getjson
+                    } //direction in end
+                }); //pageAnimationEnd
+
+                $('#bio').bind('pageAnimationEnd', function(e, info) {
+                    if (info.direction == 'in') {
+                        var id = $(this).data('referrer')[0].id;
+                        var output = $('#actionList');
+                        showLoading();
+                        $.getJSON('http://mideastunes.com/api/v1/artists/'+id+'?greedy=pictures,songs', function(data) {
+                             $.each(data.data, function(i,item){
+                              $('#artistDetails_bio').html(item.metadata.bio);
+                              $('#fullName_bio').text(item.metadata.name);
+                              $('#categories').text(item.genres);
+                              $('#country').text(item.metadata.country.name);
+                            });
+                        hideLoading();
+                        }); // getjson
+                        $('#tabbar').hide();
+                    } //direction in end
+                }); //pageAnimationEnd
+
+                //ajax loading animation
+                    function showLoading() {
+                      //$("div.container").show();
+                        $("#busy").show(); // If image gif
+                    }
+
+                    function hideLoading() {
+                       //$("div.container").hide();
+                        $("#busy").hide();  // If image gif
+                    }
+
+                // Orientation callback event
+                $('#jqt').bind('turn', function(e, data){
+                    $('#orient').html('Orientation: ' + data.orientation);
+                });
+
+            });
+        </script>
+        <style type="text/css" media="screen">
+            #jqt.fullscreen #home .info {
+                display: none;
+            }
+            div#jqt #about {
+                padding: 100px 10px 40px;
+                text-shadow: rgba(0, 0, 0, 0.3) 0px -1px 0;
+                color: #999;
+                font-size: 13px;
+                text-align: center;
+                background: #161618;
+            }
+            div#jqt #about p {
+                margin-bottom: 8px;
+            }
+            div#jqt #about a {
+                color: #fff;
+                font-weight: bold;
+                text-decoration: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="jqt">
+            <div id="home" class="current">
+                <div class="toolbar">
+                    <h1>Artists</h1>
+                    <!-- <a class="button slideup" id="infoButton" href="#player">About</a> -->
+                    <a class="button flipright" id="infoButton" href="#list">List</a>
+                </div>
+                <div class="scroll">
+                    <ul class="rounded">
+                        <li class="arrow"><a href="#animations">Animations <small class="counter">7</small></a></li>
+                        <li class="arrow"><a href="#ajax">AJAX <small class="counter">4</small></a></li>
+                    </ul>
+                </div>
+            </div>
+            <div id="list">
+                <div id="long">
+                    <div class="toolbar">
+                        <h1>GET Example</h1>
+                        <a class="back" href="#">AJAX</a>
+                    </div>
+                    <div class="info view" style="text-align: left;">
+                      <table width="100%">
+                        <tr>
+                          <a class="button" href="#">Popular</a>
+                          <a class="button" href="#">New</a>
+                          <a class="button" href="#">Search</a>
+                        </tr>
+                        <tr>
+                          <td colspan="3">
+                              <form id="enteractivity" name="enteractivity" >
+                                  <input type="text" name="query" id="search_input">
+                              </form>
+                          </td>
+                        </tr>
+                      </table>
+                  </div>
+                  <div id="wrapper">
+                    <ul id="artistList" class="icon-list rounded"></ul>
+                  </div>
+                </div>
+            </div>
+            <div id="details">
+                <div id="long">
+                    <div class="toolbar">
+                        <h1 id="fullName"></h1>
+                        <a class="back" href="#">AJAX</a>
+                        <a class="button flipright bio_bttn" id="" href="#bio">Bio</a>
+                    </div>
+                    <div class="info view" style="text-align: left;">
+                      <img id="artistPic"/>
+                        <div id="artistDetails">
+                            <div id="song">Songs</div>
+                        </div>
+                        <ul id="actionList" class="icon-list rounded"></ul>
+                    </div>
+                </div>
+            </div>
+            <div id="bio">
+                <div id="long">
+                    <div class="toolbar">
+                        <h1 id="fullName_bio"></h1>
+                        <a class="back" href="#">AJAX</a>
+                    </div>
+                    <div class="info view" style="text-align: left;">
+                      <img id="artistPic"/>
+                        <div id="artistDetails_bio">
+                            <div id="song">Songs</div>
+                        </div>
+                        <ul id="actionList" class="icon-list rounded"></ul>
+                        <div id="footer-bio">
+                          <span id="categories"></span>
+                          <span id="country"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="player" class="selectable">
+              <div id="jp_container_N" class="jp-video jp-video-270p">
+                <div class="jp-type-playlist">
+                  <div id="jquery_jplayer_N" class="jp-jplayer"></div>
+                  <div class="jp-gui">
+                    <div class="jp-video-play">
+                      <a href="javascript:;" class="jp-video-play-icon" tabindex="1">play</a>
+                    </div>
+                    <div class="jp-interface">
+                      <div class="jp-progress">
+                        <div class="jp-seek-bar">
+                          <div class="jp-play-bar"></div>
+                        </div>
+                      </div>
+                      <div class="jp-current-time"></div>
+                      <div class="jp-duration"></div>
+                      <div class="jp-controls-holder">
+                        <ul class="jp-controls">
+                          <li><a href="javascript:;" class="jp-previous" tabindex="1">previous</a></li>
+                          <li><a href="javascript:;" class="jp-play" tabindex="1">play</a></li>
+                          <li><a href="javascript:;" class="jp-pause" tabindex="1">pause</a></li>
+                          <li><a href="javascript:;" class="jp-next" tabindex="1">next</a></li>
+                          <li><a href="javascript:;" class="jp-stop" tabindex="1">stop</a></li>
+                          <li><a href="javascript:;" class="jp-mute" tabindex="1" title="mute">mute</a></li>
+                          <li><a href="javascript:;" class="jp-unmute" tabindex="1" title="unmute">unmute</a></li>
+                          <li><a href="javascript:;" class="jp-volume-max" tabindex="1" title="max volume">max volume</a></li>
+                        </ul>
+                        <div class="jp-volume-bar">
+                          <div class="jp-volume-bar-value"></div>
+                        </div>
+                        <ul class="jp-toggles">
+                          <li><a href="javascript:;" class="jp-shuffle" tabindex="1" title="shuffle">shuffle</a></li>
+                          <li><a href="javascript:;" class="jp-shuffle-off" tabindex="1" title="shuffle off">shuffle off</a></li>
+                          <li><a href="javascript:;" class="jp-repeat" tabindex="1" title="repeat">repeat</a></li>
+                          <li><a href="javascript:;" class="jp-repeat-off" tabindex="1" title="repeat off">repeat off</a></li>
+                        </ul>
+                      </div>
+                      <div class="jp-title">
+                        <ul>
+                          <li></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="jp-playlist">
+                    <ul>
+                      <!-- The method Playlist.displayPlaylist() uses this unordered list -->
+                      <li></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div><!--Player-->
+        </div>
+        <nav id="tabbar">
+            <ul >
+             <!-- Action & navigation -->
+                <li><a href="#ajax" class="current flip" ><strong>Home</strong><span style="text-align:center"><img src="img/ToolbarHome.png" /></span></a></li>
+                <li><a href="#ajax" class="flip"><strong>Favorites</strong><span style="text-align:center"><img src="img/ToolbarFavorites.png"/></span></a></li>
+                <li><a href="#ajax" class="flip"><strong>Artists</strong><span style="text-align:center"><img src="img/ToolbarArtists.png"/></span></a></li>
+                <li><a href="#player" class="slideup"><strong>Player</strong><span style="text-align:center"><img src="img/ToolbarPlayer.png"/></span></a></li>
+            </ul>
+        </nav>
+        <div id="busy">Loading...</div>
+    </body>
+</html>
