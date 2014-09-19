@@ -1,3 +1,4 @@
+
 <?php
 $theaters = array("Los Gatos Cinema","Cinelux Plaza Theatre","Camera 7");
 $movies = array("Transformers","Knocked Up","Live Free Die Hard");
