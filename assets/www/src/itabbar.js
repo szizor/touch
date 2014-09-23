@@ -6,7 +6,7 @@
 var count = $("#tabbar li").length;
 var pourcent = 100 / count;
 $("#tabbar li").css("width", pourcent + "%");
-//alert(pourcent);
+alert(pourcent);
 
 var clickEventType=((document.ontouchstart!==null)?'click':'touchstart');
 
